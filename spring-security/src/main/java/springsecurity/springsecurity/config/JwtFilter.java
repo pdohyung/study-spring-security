@@ -28,13 +28,14 @@ public class JwtFilter extends OncePerRequestFilter {
 	private final String secretKey;
 
 	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+		FilterChain filterChain) throws ServletException, IOException {
 
 		final String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
 		log.info("authorization : {}", authorization);
 
 		//token 보내지 않으면 block
-		if (authorization == null || !authorization.startsWith("Bearer ")){
+		if (authorization == null || !authorization.startsWith("Bearer ")) {
 			log.error("Authorization을 잘못보냈습니다.");
 			filterChain.doFilter(request, response);
 			return;
@@ -44,17 +45,17 @@ public class JwtFilter extends OncePerRequestFilter {
 		String token = authorization.split(" ")[1];
 
 		//token Expired 검사
-		if(JwtUtil.isExpired(token, secretKey)){
+		if (JwtUtil.isExpired(token, secretKey)) {
 			log.error("Token이 만료되었습니다.");
 			filterChain.doFilter(request, response);
 			return;
 		}
 
 		//UserName Token 꺼내기
-		String userName = "";
+		String userName = JwtUtil.getUserName(token, secretKey);
+		log.info("userName : {}", userName);
 
-		UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userName, null,
-			List.of(new SimpleGrantedAuthority("USER")));
+		UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userName, null, List.of(new SimpleGrantedAuthority("USER")));
 		authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 		SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 		filterChain.doFilter(request, response);
